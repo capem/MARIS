@@ -8,10 +8,12 @@ from ..core.types import ControlInput, EnvironmentSample, VesselParams, VesselSt
 
 class WindForce:
     """
-    Very simple placeholder aerodynamic force model to yield non-zero values.
-    Assumptions:
-      - Quadratic drag proportional to apparent wind speed squared.
-      - Lift neglected; yaw moment proportional to lateral force lever arm ~ Lpp/2.
+    Enhanced aerodynamic force model with proper coordinate transformations.
+    Features:
+      - Apparent wind calculation including vessel motion effects
+      - Proper coordinate transformation from world to body frame
+      - Quadratic drag proportional to apparent wind speed squared
+      - Lift neglected; yaw moment proportional to lateral force lever arm ~ Lpp/2
     Tunables can later be moved into params.wind_params.
     """
 
@@ -39,14 +41,33 @@ class WindForce:
             self.area_ref if self.area_ref is not None else params.B * params.T
         )  # crude side area estimate
 
-        # Apparent wind in North-East; convert to body-fixed approx. ignoring vessel motion for placeholder
+        # True wind vector in world frame (ENU)
         Vw = max(0.0, float(env.wind_speed))
-        # Direction-from to direction-to: wind coming from angle -> flow to +pi offset
         theta_from = float(env.wind_dir_from)
-        # Project wind along ship axes (body x approximated by global x when psi ~ 0; keep simple here)
-        # For placeholder, resolve in body assuming psi ~ 0
-        wx = Vw * math.cos(theta_from + math.pi)  # to-direction
-        wy = Vw * math.sin(theta_from + math.pi)
+        # Convert from "direction wind is coming from" to "direction wind is going to"
+        theta_to = theta_from + math.pi
+        wind_world_x = Vw * math.cos(theta_to)  # east component
+        wind_world_y = Vw * math.sin(theta_to)  # north component
+
+        # Vessel velocity in world frame (ENU)
+        c = math.cos(state.psi)
+        s = math.sin(state.psi)
+        vessel_world_x = state.u * c - state.v * s  # east velocity
+        vessel_world_y = state.u * s + state.v * c  # north velocity
+
+        # Apparent wind = true wind - vessel velocity (in world frame)
+        apparent_wind_world_x = wind_world_x - vessel_world_x
+        apparent_wind_world_y = wind_world_y - vessel_world_y
+
+        # Transform apparent wind from world frame to body frame using -psi
+        c_body = math.cos(-state.psi)
+        s_body = math.sin(-state.psi)
+        wx = (
+            c_body * apparent_wind_world_x - s_body * apparent_wind_world_y
+        )  # surge component
+        wy = (
+            s_body * apparent_wind_world_x + c_body * apparent_wind_world_y
+        )  # sway component
 
         # Forces quadratic with coefficients
         X = -0.5 * rho_air * self.cx * A * wx * abs(wx)
