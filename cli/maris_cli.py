@@ -5,24 +5,24 @@ import json
 from pathlib import Path
 from typing import Any, Mapping, Optional
 
-from maris.core.types import SimulationConfig
+from maris.control.pid import PIDConfig, RatePIDAutopilot
+from maris.control.rate_provider import RateIntegratingControlProvider, WaypointProvider
 from maris.core.validation import (
     validate_config,
-    validate_params,
     validate_initial_state,
+    validate_params,
 )
-from maris.sim.runner import SimulationRunner
+from maris.environment.providers import create_environment_provider_from_config
 from maris.io.results import (
     CsvTickWriter,
     JsonlTickWriter,
     SummaryJsonWriter,
     TickWriter,
 )
-from maris.io.ship import load as load_ship
 from maris.io.scenario import load as load_scenario
-from maris.control.pid import RatePIDAutopilot, PIDConfig
-from maris.control.rate_provider import RateIntegratingControlProvider, WaypointProvider
-from maris.environment.providers import create_environment_provider_from_config
+from maris.io.ship import load as load_ship
+from maris.sim.runner import SimulationRunner
+from maris.viz.plot2d import Plot2DOptions, plot_run_csv
 
 
 def _mkdir(p: Path) -> None:
@@ -144,8 +144,6 @@ def main(argv: Optional[list[str]] = None) -> None:
     # Optional 2D plotting
     if args.plot2d:
         try:
-            from maris.viz.plot2d import plot_run_csv, Plot2DOptions
-
             csv_path = args.plot_csv if args.plot_csv else (out_dir / "results.csv")
             png_out = args.png if args.png else (out_dir / "plot2d.png")
             title = f"Trajectory — {args.ship.name} / {args.scenario.name}"
