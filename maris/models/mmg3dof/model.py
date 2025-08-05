@@ -12,10 +12,12 @@ from ...core.types import (
     VesselState,
 )
 from ...core.validation import check_bounds_control
+from ...forces.bow_thruster import BowThrusterForce
 from ...forces.current import CurrentForce
 from ...forces.hull import HullForce
 from ...forces.propulsion import PropulsionForce
 from ...forces.rudder import RudderForce
+from ...forces.stern_thruster import SternThrusterForce
 from ...forces.wind import WindForce
 
 
@@ -31,11 +33,11 @@ class ForceModule(Protocol):
 
 @dataclass
 class MMG3DOFModel:
-    """MMG 3-DOF model skeleton.
+    """Enhanced MMG 3-DOF model with thruster capabilities.
     Responsibilities:
-      - Aggregate forces from hull, propulsion, rudder, wind, current modules
+      - Aggregate forces from hull, propulsion, rudder, wind, current, and thruster modules
       - Provide f(t, state, control, env, params) mapping forces to Derivatives
-    Dynamics here remain placeholder but include basic kinematics to show motion.
+      - Support harbor maneuvering with bow/stern thrusters
     """
 
     hull: Optional[ForceModule] = None
@@ -43,6 +45,8 @@ class MMG3DOFModel:
     rudder: Optional[ForceModule] = None
     wind: Optional[ForceModule] = None
     current: Optional[ForceModule] = None
+    bow_thruster: Optional[ForceModule] = None
+    stern_thruster: Optional[ForceModule] = None
 
     def __post_init__(self):
         # Provide default force models if none supplied
@@ -56,6 +60,10 @@ class MMG3DOFModel:
             self.wind = WindForce()
         if self.current is None:
             self.current = CurrentForce()
+        if self.bow_thruster is None:
+            self.bow_thruster = BowThrusterForce()
+        if self.stern_thruster is None:
+            self.stern_thruster = SternThrusterForce()
 
     def _sum_forces(
         self,
@@ -73,6 +81,8 @@ class MMG3DOFModel:
             ("rudder", self.rudder),
             ("wind", self.wind),
             ("current", self.current),
+            ("bow_thruster", self.bow_thruster),
+            ("stern_thruster", self.stern_thruster),
         ):
             if mod is None:
                 continue

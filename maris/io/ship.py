@@ -108,6 +108,7 @@ def load(
     rudder_params = data.get("rudder", {})
     wind_params = data.get("wind_params")
     current_params = data.get("current_params")
+    thruster_params = data.get("thruster_params")
 
     return VesselParams(
         m=m,
@@ -128,5 +129,6 @@ def load(
         rudder_params=rudder_params,
         wind_params=wind_params,
         current_params=current_params,
+        thruster_params=thruster_params,
         metadata={"source": str(path), "schema_version": data.get("schema_version")},
     )

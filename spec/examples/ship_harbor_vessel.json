@@ -1,0 +1,62 @@
+{
+  "schema_version": "1.0.0",
+  "$id": "spec/schemas/ship.schema.json",
+  "identity": { 
+    "vessel_id": "harbor_vessel_demo", 
+    "name": "Harbor Maneuvering Vessel with Thrusters" 
+  },
+  "units_policy": { "angles": "rad", "length": "m", "mass": "kg" },
+  "geometry": { "Lpp": 120.0, "B": 20.0, "T": 6.5 },
+  "mass_properties": {
+    "displacement": 5.2e6,
+    "Iz": 1.8e9,
+    "added_mass": { "X_u_dot": -8.0e5, "Y_v_dot": -1.5e6, "N_r_dot": -2.2e8 }
+  },
+  "mmg": {
+    "hull_coeffs": { 
+      "Xu": -2.0e4, "Xuu": -8.0e3, "Yv": -6.0e5, "Yvv": -3.0e4, "Nr": -1.5e8, "Nrr": -8.0e6,
+      "Yuv": -1.5e5, "Yur": 6.0e5, "Nuv": -3.0e7, "Nur": -1.2e8, "Xvr": -1.5e5,
+      "Xvv": -6.0e3, "Xrr": -6.0e5, "Yvr": -3.0e5, "Nvv": -6.0e6
+    },
+    "added_mass": { "X_u_dot": -8.0e5, "Y_v_dot": -1.5e6, "N_r_dot": -2.2e8 }
+  },
+  "propulsion": {
+    "type": "single",
+    "diameter": 4.5,
+    "wake_fraction": 0.26,
+    "thrust_deduction": 0.17,
+    "efficiency_max": 0.66,
+    "map": { "T0": 0.0, "T1": 0.0, "T2": 6.0e4, "steer_gain": 0.03, "x_prop": -60.0 }
+  },
+  "rudder": { 
+    "area": 35.0, "x_rudder": -55.0, "y": 0.0, 
+    "a_lift": 6.28, "c_drag": 0.09, "stall_angle": 0.35,
+    "slipstream_factor": 1.4, "aspect_ratio": 2.0
+  },
+  "thruster_params": {
+    "bow_thruster": {
+      "max_force": 120000.0,
+      "position_x": 48.0,
+      "efficiency": 0.82,
+      "power_curve_exp": 1.4
+    },
+    "stern_thruster": {
+      "max_force": 80000.0,
+      "position_x": -48.0,
+      "efficiency": 0.78,
+      "power_curve_exp": 1.5
+    }
+  },
+  "limits": {
+    "rpm": { "min": -100.0, "max": 100.0 },
+    "rudder": { "min_rad": -0.5235987756, "max_rad": 0.5235987756 }
+  },
+  "environment": { "rho_water": 1025.0 },
+  "current_params": {
+    "kx_linear": 3.0e4, "ky_linear": 6.0e4,
+    "kx_quad": 1.5e3, "ky_quad": 3.0e3
+  },
+  "wind_params": {
+    "cx": 0.8, "cy": 1.0, "lever_coeff": 0.46
+  }
+}

@@ -24,6 +24,10 @@ class ControlInput:
     rpm: float  # commanded propeller RPM
     rudder_angle: float  # δ [rad], positive to port (CCW)
     throttle: Optional[float] = None  # 0..1 optional, if used
+    bow_thruster_force: Optional[float] = None  # [N], positive to starboard
+    bow_thruster_angle: Optional[float] = None  # [rad], thruster direction
+    stern_thruster_force: Optional[float] = None  # [N], positive to starboard
+    stern_thruster_angle: Optional[float] = None  # [rad], thruster direction
     notes: Optional[str] = None
 
 
@@ -85,6 +89,7 @@ class VesselParams:
     rudder_params: Mapping[str, Any]
     wind_params: Optional[Mapping[str, Any]] = None
     current_params: Optional[Mapping[str, Any]] = None
+    thruster_params: Optional[Mapping[str, Any]] = None
     metadata: Optional[Mapping[str, Any]] = None
 
 

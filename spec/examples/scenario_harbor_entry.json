@@ -1,0 +1,59 @@
+{
+  "schema_version": "1.0.0",
+  "$id": "spec/schemas/scenario.schema.json",
+  "identity": { 
+    "scenario_id": "harbor_entry_demo", 
+    "name": "Harbor Entry with Bow/Stern Thrusters" 
+  },
+  "crs": { 
+    "type": "LOCAL_ENU", 
+    "origin": { "lon": -0.001, "lat": 51.0, "h": 0.0 }, 
+    "theta0_rad": 0.0 
+  },
+  "simulation": {
+    "t0": 0.0,
+    "t_end": 300.0,
+    "t_step": 0.2,
+    "integrator": "rk4",
+    "seed": 42
+  },
+  "initial_conditions": {
+    "state": { "x": -500.0, "y": -200.0, "psi_rad": 0.785, "u": 3.0, "v": 0.0, "r": 0.0 }
+  },
+  "control": {
+    "mode": "manual",
+    "schedule": [
+      { "t": 0.0, "rpm": 40.0, "rudder_rad": 0.0, "throttle": 0.6, "notes": "approach" },
+      { "t": 30.0, "rpm": 40.0, "rudder_rad": 0.1, "throttle": 0.6, "notes": "course_correction" },
+      { "t": 60.0, "rpm": 30.0, "rudder_rad": 0.05, "throttle": 0.4, "notes": "slow_approach" },
+      { "t": 90.0, "rpm": 20.0, "rudder_rad": 0.15, "throttle": 0.3, "notes": "harbor_entry" },
+      { "t": 120.0, "rpm": 15.0, "rudder_rad": 0.2, "throttle": 0.2, "bow_thruster_force": 50000.0, "bow_thruster_angle": 1.57, "notes": "tight_turn_with_bow_thruster" },
+      { "t": 150.0, "rpm": 10.0, "rudder_rad": 0.1, "throttle": 0.15, "bow_thruster_force": 30000.0, "bow_thruster_angle": 0.0, "notes": "final_approach_with_thruster" },
+      { "t": 180.0, "rpm": 5.0, "rudder_rad": 0.0, "throttle": 0.1, "bow_thruster_force": 20000.0, "bow_thruster_angle": 0.0, "stern_thruster_force": -15000.0, "stern_thruster_angle": -1.57, "notes": "docking_with_thrusters" },
+      { "t": 210.0, "rpm": 0.0, "rudder_rad": 0.0, "throttle": 0.0, "bow_thruster_force": 10000.0, "bow_thruster_angle": 1.57, "stern_thruster_force": -10000.0, "stern_thruster_angle": -1.57, "notes": "precise_positioning" },
+      { "t": 240.0, "rpm": -5.0, "rudder_rad": 0.0, "throttle": 0.0, "bow_thruster_force": 0.0, "stern_thruster_force": 0.0, "notes": "final_docking" },
+      { "t": 270.0, "rpm": 0.0, "rudder_rad": 0.0, "throttle": 0.0, "bow_thruster_force": 0.0, "stern_thruster_force": 0.0, "notes": "secured" }
+    ]
+  },
+  "environment": {
+    "wind": { "speed": 8.0, "dir_from_rad": 2.356 },
+    "current": { "speed": 0.4, "dir_to_rad": 1.047 },
+    "bathymetry": { 
+      "type": "harbor_profile",
+      "depth_schedule": [
+        { "t": 0.0, "depth_m": 25.0 },
+        { "t": 120.0, "depth_m": 15.0 },
+        { "t": 240.0, "depth_m": 8.0 }
+      ]
+    }
+  },
+  "outputs": {
+    "per_tick": { "decimation": 1 },
+    "websocket": { "enabled": false, "decimation": 3 }
+  },
+  "termination_bounds": { 
+    "x_min": -600.0, "x_max": 200.0, 
+    "y_min": -300.0, "y_max": 100.0 
+  },
+  "notes": "Demonstrates harbor entry maneuvers with bow/stern thrusters for precise docking operations"
+}
