@@ -13,5 +13,9 @@ from .core.exceptions import (
     RuntimeAbort,
     NumericalInstability,
 )
+from .environment import (
+    StaticEnvironmentProvider,
+    TimeVaryingEnvironmentProvider,
+)
 # Protocol exports (type-only for users)
 # Implementations are stubs in Phase 1 scaffolding

@@ -2,14 +2,15 @@
 
 A Python framework for ship maneuvering simulation and autopilot development with a runnable simulation CLI, data schemas, MMG 3-DOF model implementation, force modules, SciPy-based integration, PID autopilot, and visualization utilities.
 
-Current status (Phase 1):
+Current status:
 - Core types, validation, IO loaders, and CLI are fully implemented and operational.
 - MMG 3-DOF model with force modules (hull, propulsion, rudder, wind, current) is the default model with proper force aggregation.
 - SciPy-based ODE integration (solve_ivp) provides robust numerical integration.
 - PID-based autopilot outputs actuator rate commands that are integrated to absolute controls in the runner.
+- Environment providers support both static and time-varying environmental conditions (wind, current, sea state).
 - Comprehensive logging with CSV/JSONL per-tick output and summary JSON.
 - 2D visualization (matplotlib) generates PNG trajectory plots from simulation results.
-- The CLI now enforces the MMG3DOF model path and surfaces import/parameter errors instead of silently falling back to a dummy model.
+- The CLI enforces the MMG3DOF model and proper environment providers with no dummy/placeholder implementations.
 
 Requirements
 - Python 3.10+
@@ -49,6 +50,7 @@ Repository layout
   - core/ — Core types, exceptions, validation utilities
   - io/ — Ship & scenario loaders with JSON Schema validation; results writers (CSV, JSONL, JSON)
   - control/ — PID autopilot implementation and rate-integrating control provider
+  - environment/ — Environment providers for static and time-varying environmental conditions
   - forces/ — Force modules for wind, current, hull, propulsion, and rudder
   - models/mmg3dof/ — MMG 3-DOF model implementation with force aggregation
   - sim/ — SimulationRunner orchestrating the main loop with SciPy integration
@@ -98,9 +100,11 @@ Smoke test
 - This provides a quick verification that the core simulation functionality is working correctly
 
 Behavior notes
-- The CLI now enforces the use of the MMG3DOFModel and will surface any import or parameter errors.
+- The CLI enforces the use of the MMG3DOFModel and will surface any import or parameter errors.
 - The MMG3DOF model properly aggregates forces from all modules (hull, propulsion, rudder, wind, current).
 - The model includes simplified 3-DOF dynamics with added-mass terms and coriolis forces.
+- Environment providers automatically select between static and time-varying implementations based on scenario configuration.
+- Time-varying environments support sinusoidal wind gusts and tidal current variations.
 - SciPy's solve_ivp integration provides robust numerical stability for the simulation.
 - The example ship parameters are based on KVLCC2 but may still need further tuning against benchmark data.
 
@@ -124,6 +128,7 @@ Roadmap (near-term tasks)
 - ✅ Make MMG3DOF path the default and surface import/parameter errors instead of silent fallback
 - ✅ Implement SciPy-based integration with robust error handling
 - ✅ Implement proper force aggregation in the MMG3DOF model
+- ✅ Replace dummy classes with proper environment providers supporting static and time-varying conditions
 - Tune model coefficients and validate basic maneuvers (turning circle, zig-zag) with KVLCC2 benchmark data
 - Add swept path calculation and Under-Keel Clearance (UKC) analysis
 - Implement GeoJSON export and overlay capabilities in the 2D plotter
@@ -160,6 +165,7 @@ Troubleshooting
     ```
 
 ### Model Implementation
-- The MMG3DOF model is now enforced by default in the CLI
+- The MMG3DOF model is enforced by default in the CLI with no dummy fallbacks
+- Environment providers are automatically selected based on scenario configuration
 - If you need to debug model behavior, examine the force components in the JSONL output
 - For numerical instabilities, check the solver parameters in `maris/sim/runner.py`
