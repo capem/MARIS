@@ -85,6 +85,9 @@ class Callbacks:
     ] = None
     on_tick_logged: Optional[Callable[[int], None]] = None
     on_stream_send: Optional[Callable[[int], None]] = None
+    on_force_analysis: Optional[
+        Callable[[float, VesselState, Mapping[str, Any]], None]
+    ] = None
 
 
 @dataclass
@@ -94,15 +97,19 @@ class RunResult:
     end_time: float
     ticks: int
     dt: float
+    performance_metrics: Optional[Mapping[str, Any]] = None
 
     def summary(self) -> Mapping[str, Any]:
-        return {
+        summary_dict = {
             "status": self.status,
             "reason": self.reason,
             "end_time": self.end_time,
             "ticks": self.ticks,
             "dt": self.dt,
         }
+        if self.performance_metrics:
+            summary_dict["performance"] = self.performance_metrics
+        return summary_dict
 
     def iter_records(self) -> Iterable[Mapping[str, Any]]:
         # Placeholder for streaming of written records via attached writer, if any.
@@ -128,8 +135,53 @@ def _make_segment_fun(
     return fun
 
 
+def _analyze_forces(forces: Mapping[str, Any], state: VesselState) -> Mapping[str, Any]:
+    """Analyze force components and provide enhanced diagnostics."""
+    analysis = {}
+
+    # Extract total forces
+    total_X = float(forces.get("X", 0.0))
+    total_Y = float(forces.get("Y", 0.0))
+    total_N = float(forces.get("N", 0.0))
+
+    # Force magnitude and direction
+    force_magnitude = (total_X**2 + total_Y**2) ** 0.5
+    force_angle = np.arctan2(total_Y, total_X) if force_magnitude > 1e-6 else 0.0
+
+    analysis["total_forces"] = {"X": total_X, "Y": total_Y, "N": total_N}
+    analysis["force_magnitude"] = force_magnitude
+    analysis["force_angle_rad"] = force_angle
+
+    # Component breakdown if available
+    components = forces.get("components", {})
+    if components:
+        analysis["components"] = {}
+        for name, comp in components.items():
+            if isinstance(comp, dict):
+                comp_X = float(comp.get("X", 0.0))
+                comp_Y = float(comp.get("Y", 0.0))
+                comp_N = float(comp.get("N", 0.0))
+                comp_mag = (comp_X**2 + comp_Y**2) ** 0.5
+                analysis["components"][name] = {
+                    "X": comp_X,
+                    "Y": comp_Y,
+                    "N": comp_N,
+                    "magnitude": comp_mag,
+                }
+
+    # Motion state analysis
+    speed = (state.u**2 + state.v**2) ** 0.5
+    analysis["motion"] = {
+        "speed": speed,
+        "drift_angle": np.arctan2(state.v, state.u) if speed > 1e-6 else 0.0,
+        "yaw_rate": state.r,
+    }
+
+    return analysis
+
+
 class SimulationRunner:
-    """Fixed-step simulation loop now using SciPy solve_ivp per segment."""
+    """Enhanced simulation loop with force analysis and performance monitoring."""
 
     def run(
         self,
@@ -150,6 +202,13 @@ class SimulationRunner:
 
         t = config.t0
         k = 0
+
+        # Performance monitoring
+        import time
+
+        start_time = time.time()
+        solver_calls = 0
+        solver_time = 0.0
         # vector state for solver
         y = np.asarray(
             [
@@ -212,8 +271,14 @@ class SimulationRunner:
             forces = model.forces(state, control, env, vessel_params)
             deriv = model.f(t, state, control, env, vessel_params)
 
+            # Enhanced force analysis
+            force_analysis = _analyze_forces(forces, state)
+
             if callbacks and callbacks.on_step:
                 callbacks.on_step(t, state, control, env, deriv, forces)
+
+            if callbacks and callbacks.on_force_analysis:
+                callbacks.on_force_analysis(t, state, force_analysis)
 
             # Build per-segment fun and integrate to t_next
             t_next = min(t + config.dt, config.t_end)
@@ -224,6 +289,7 @@ class SimulationRunner:
                 y_out = np.asarray(y, dtype=float)
             else:
                 # Integrate without t_eval; take final state for robustness
+                solver_start = time.time()
                 sol = solve_ivp(
                     fun,
                     (t, t_next),
@@ -234,6 +300,8 @@ class SimulationRunner:
                     max_step=max_step,
                     vectorized=False,
                 )
+                solver_time += time.time() - solver_start
+                solver_calls += 1
 
                 if not sol.success or sol.y is None:
                     term_reason = (
@@ -274,36 +342,59 @@ class SimulationRunner:
             state_next = model.unpack_state_vector(y)
             detect_numerical_issue(state, state_next)
 
-            # Logging (decimated)
+            # Enhanced logging (decimated)
             if writer and (k % config.output_decimation) == 0:
-                writer.write_tick(
+                # Base record
+                record = {
+                    "t": t,
+                    "x": state.x,
+                    "y": state.y,
+                    "psi": state.psi,
+                    "u": state.u,
+                    "v": state.v,
+                    "r": state.r,
+                    "rpm": control.rpm,
+                    "rudder_angle": control.rudder_angle,
+                    "wind_speed": env.wind_speed,
+                    "wind_dir_from": env.wind_dir_from,
+                    "current_speed": env.current_speed,
+                    "current_dir_to": env.current_dir_to,
+                    "X": float(forces.get("X", 0.0))
+                    if isinstance(forces, dict)
+                    else 0.0,
+                    "Y": float(forces.get("Y", 0.0))
+                    if isinstance(forces, dict)
+                    else 0.0,
+                    "N": float(forces.get("N", 0.0))
+                    if isinstance(forces, dict)
+                    else 0.0,
+                    "rpm_cmd": rpm_cmd,
+                    "rudder_cmd": rudder_cmd,
+                }
+
+                # Add force components if available
+                components = (
+                    forces.get("components", {}) if isinstance(forces, dict) else {}
+                )
+                for comp_name, comp_forces in components.items():
+                    if isinstance(comp_forces, dict):
+                        record[f"{comp_name}_X"] = float(comp_forces.get("X", 0.0))
+                        record[f"{comp_name}_Y"] = float(comp_forces.get("Y", 0.0))
+                        record[f"{comp_name}_N"] = float(comp_forces.get("N", 0.0))
+
+                # Add force analysis metrics
+                record.update(
                     {
-                        "t": t,
-                        "x": state.x,
-                        "y": state.y,
-                        "psi": state.psi,
-                        "u": state.u,
-                        "v": state.v,
-                        "r": state.r,
-                        "rpm": control.rpm,
-                        "rudder_angle": control.rudder_angle,
-                        "wind_speed": env.wind_speed,
-                        "wind_dir_from": env.wind_dir_from,
-                        "current_speed": env.current_speed,
-                        "current_dir_to": env.current_dir_to,
-                        "X": float(forces.get("X", 0.0))
-                        if isinstance(forces, dict)
-                        else 0.0,
-                        "Y": float(forces.get("Y", 0.0))
-                        if isinstance(forces, dict)
-                        else 0.0,
-                        "N": float(forces.get("N", 0.0))
-                        if isinstance(forces, dict)
-                        else 0.0,
-                        "rpm_cmd": rpm_cmd,
-                        "rudder_cmd": rudder_cmd,
+                        "force_magnitude": force_analysis.get("force_magnitude", 0.0),
+                        "force_angle_rad": force_analysis.get("force_angle_rad", 0.0),
+                        "speed": force_analysis.get("motion", {}).get("speed", 0.0),
+                        "drift_angle": force_analysis.get("motion", {}).get(
+                            "drift_angle", 0.0
+                        ),
                     }
                 )
+
+                writer.write_tick(record)
                 if callbacks and callbacks.on_tick_logged:
                     callbacks.on_tick_logged(k)
 
@@ -331,18 +422,40 @@ class SimulationRunner:
         status = (
             "completed" if t >= config.t_end and term_reason is None else "terminated"
         )
+
+        # Calculate performance metrics
+        total_time = time.time() - start_time
+        performance_metrics = {
+            "total_simulation_time": total_time,
+            "solver_time": solver_time,
+            "solver_calls": solver_calls,
+            "solver_time_fraction": solver_time / total_time if total_time > 0 else 0.0,
+            "average_solver_time": solver_time / solver_calls
+            if solver_calls > 0
+            else 0.0,
+            "simulation_speed_ratio": (t - config.t0) / total_time
+            if total_time > 0
+            else 0.0,
+        }
+
         summary = {
             "status": status,
             "reason": term_reason if status == "terminated" else "completed",
             "end_time": t,
             "ticks": k,
             "dt": config.dt,
+            "performance": performance_metrics,
         }
         if summary_writer:
             summary_writer.write_summary(summary)
 
         return RunResult(
-            status=status, reason=term_reason, end_time=t, ticks=k, dt=config.dt
+            status=status,
+            reason=term_reason,
+            end_time=t,
+            ticks=k,
+            dt=config.dt,
+            performance_metrics=performance_metrics,
         )
 
 

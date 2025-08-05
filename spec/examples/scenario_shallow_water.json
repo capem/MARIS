@@ -1,0 +1,54 @@
+{
+  "schema_version": "1.0.0",
+  "$id": "spec/schemas/scenario.schema.json",
+  "identity": { 
+    "scenario_id": "shallow_water_demo", 
+    "name": "Shallow Water Effects Demonstration" 
+  },
+  "crs": { 
+    "type": "LOCAL_ENU", 
+    "origin": { "lon": -0.001, "lat": 51.0, "h": 0.0 }, 
+    "theta0_rad": 0.0 
+  },
+  "simulation": {
+    "t0": 0.0,
+    "t_end": 120.0,
+    "t_step": 0.2,
+    "integrator": "rk4",
+    "seed": 42
+  },
+  "initial_conditions": {
+    "state": { "x": 0.0, "y": 0.0, "psi_rad": 0.0, "u": 8.0, "v": 0.0, "r": 0.0 }
+  },
+  "control": {
+    "mode": "manual",
+    "schedule": [
+      { "t": 0.0, "rpm": 40.0, "rudder_rad": 0.0 },
+      { "t": 30.0, "rpm": 40.0, "rudder_rad": 0.1 },
+      { "t": 60.0, "rpm": 40.0, "rudder_rad": 0.0 },
+      { "t": 90.0, "rpm": 40.0, "rudder_rad": -0.1 }
+    ]
+  },
+  "environment": {
+    "wind": { "speed": 3.0, "dir_from_rad": 1.5707963268 },
+    "current": { "speed": 0.8, "dir_to_rad": 3.141592654 },
+    "bathymetry": { 
+      "type": "time_varying",
+      "depth_schedule": [
+        { "t": 0.0, "depth_m": 50.0 },
+        { "t": 40.0, "depth_m": 25.0 },
+        { "t": 80.0, "depth_m": 15.0 },
+        { "t": 120.0, "depth_m": 30.0 }
+      ]
+    }
+  },
+  "outputs": {
+    "per_tick": { "decimation": 1 },
+    "websocket": { "enabled": false, "decimation": 5 }
+  },
+  "termination_bounds": { 
+    "x_min": -8000.0, "x_max": 8000.0, 
+    "y_min": -8000.0, "y_max": 8000.0 
+  },
+  "notes": "Demonstrates shallow water effects on vessel dynamics and current forces"
+}

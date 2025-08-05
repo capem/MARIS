@@ -106,6 +106,8 @@ def load(
     hull_params = mmg.get("hull_coeffs", {})
     prop_params = data.get("propulsion", {})
     rudder_params = data.get("rudder", {})
+    wind_params = data.get("wind_params")
+    current_params = data.get("current_params")
 
     return VesselParams(
         m=m,
@@ -124,7 +126,7 @@ def load(
         hull_params=hull_params,
         prop_params=prop_params,
         rudder_params=rudder_params,
-        wind_params=None,
-        current_params=None,
+        wind_params=wind_params,
+        current_params=current_params,
         metadata={"source": str(path), "schema_version": data.get("schema_version")},
     )

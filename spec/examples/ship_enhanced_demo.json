@@ -1,0 +1,48 @@
+{
+  "schema_version": "1.0.0",
+  "$id": "spec/schemas/ship.schema.json",
+  "identity": { 
+    "vessel_id": "enhanced_demo_vessel", 
+    "name": "Enhanced Force Modules Demonstration Vessel" 
+  },
+  "units_policy": { "angles": "rad", "length": "m", "mass": "kg" },
+  "geometry": { "Lpp": 150.0, "B": 25.0, "T": 8.5 },
+  "mass_properties": {
+    "displacement": 8.5e6,
+    "Iz": 2.5e9,
+    "added_mass": { "X_u_dot": -1.2e6, "Y_v_dot": -2.0e6, "N_r_dot": -3.5e8 }
+  },
+  "mmg": {
+    "hull_coeffs": { 
+      "Xu": -2.5e4, "Xuu": -1.0e4, "Yv": -8.0e5, "Yvv": -4.0e4, "Nr": -2.0e8, "Nrr": -1.0e7,
+      "Yuv": -2.0e5, "Yur": 8.0e5, "Nuv": -4.0e7, "Nur": -1.5e8, "Xvr": -2.0e5,
+      "Xvv": -8.0e3, "Xrr": -8.0e5, "Yvr": -4.0e5, "Nvv": -8.0e6
+    },
+    "added_mass": { "X_u_dot": -1.2e6, "Y_v_dot": -2.0e6, "N_r_dot": -3.5e8 }
+  },
+  "propulsion": {
+    "type": "single",
+    "diameter": 5.5,
+    "wake_fraction": 0.28,
+    "thrust_deduction": 0.19,
+    "efficiency_max": 0.68,
+    "map": { "T0": 0.0, "T1": 0.0, "T2": 8.0e4, "steer_gain": 0.025, "x_prop": -75.0 }
+  },
+  "rudder": { 
+    "area": 45.0, "x_rudder": -70.0, "y": 0.0, 
+    "a_lift": 6.28, "c_drag": 0.085, "stall_angle": 0.35,
+    "slipstream_factor": 1.45, "aspect_ratio": 2.1
+  },
+  "limits": {
+    "rpm": { "min": -100.0, "max": 100.0 },
+    "rudder": { "min_rad": -0.5235987756, "max_rad": 0.5235987756 }
+  },
+  "environment": { "rho_water": 1025.0 },
+  "current_params": {
+    "kx_linear": 4.0e4, "ky_linear": 8.0e4,
+    "kx_quad": 2.0e3, "ky_quad": 4.0e3
+  },
+  "wind_params": {
+    "cx": 0.85, "cy": 1.05, "lever_coeff": 0.48
+  }
+}

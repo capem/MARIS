@@ -1,0 +1,49 @@
+{
+  "schema_version": "1.0.0",
+  "$id": "spec/schemas/scenario.schema.json",
+  "identity": { 
+    "scenario_id": "propeller_efficiency_demo", 
+    "name": "Propeller Efficiency and Advance Ratio Effects" 
+  },
+  "crs": { 
+    "type": "LOCAL_ENU", 
+    "origin": { "lon": -0.001, "lat": 51.0, "h": 0.0 }, 
+    "theta0_rad": 0.0 
+  },
+  "simulation": {
+    "t0": 0.0,
+    "t_end": 200.0,
+    "t_step": 0.5,
+    "integrator": "rk4",
+    "seed": 42
+  },
+  "initial_conditions": {
+    "state": { "x": 0.0, "y": 0.0, "psi_rad": 0.0, "u": 0.0, "v": 0.0, "r": 0.0 }
+  },
+  "control": {
+    "mode": "manual",
+    "schedule": [
+      { "t": 0.0, "rpm": 20.0, "rudder_rad": 0.0 },
+      { "t": 30.0, "rpm": 40.0, "rudder_rad": 0.0 },
+      { "t": 60.0, "rpm": 60.0, "rudder_rad": 0.0 },
+      { "t": 90.0, "rpm": 80.0, "rudder_rad": 0.0 },
+      { "t": 120.0, "rpm": 60.0, "rudder_rad": 0.0 },
+      { "t": 150.0, "rpm": 40.0, "rudder_rad": 0.0 },
+      { "t": 180.0, "rpm": 20.0, "rudder_rad": 0.0 }
+    ]
+  },
+  "environment": {
+    "wind": { "speed": 8.0, "dir_from_rad": 2.356194490 },
+    "current": { "speed": 1.2, "dir_to_rad": 0.785398163 },
+    "bathymetry": { "type": "constant_depth", "depth_m": 80.0 }
+  },
+  "outputs": {
+    "per_tick": { "decimation": 1 },
+    "websocket": { "enabled": false, "decimation": 3 }
+  },
+  "termination_bounds": { 
+    "x_min": -10000.0, "x_max": 10000.0, 
+    "y_min": -10000.0, "y_max": 10000.0 
+  },
+  "notes": "Demonstrates propeller efficiency curves and advance ratio effects on thrust generation"
+}

@@ -1,0 +1,49 @@
+{
+  "schema_version": "1.0.0",
+  "$id": "spec/schemas/scenario.schema.json",
+  "identity": { 
+    "scenario_id": "cross_coupling_demo", 
+    "name": "Hull Cross-Coupling Effects Demonstration" 
+  },
+  "crs": { 
+    "type": "LOCAL_ENU", 
+    "origin": { "lon": -0.001, "lat": 51.0, "h": 0.0 }, 
+    "theta0_rad": 0.0 
+  },
+  "simulation": {
+    "t0": 0.0,
+    "t_end": 150.0,
+    "t_step": 0.2,
+    "integrator": "rk4",
+    "seed": 42
+  },
+  "initial_conditions": {
+    "state": { "x": 0.0, "y": 0.0, "psi_rad": 0.0, "u": 0.0, "v": 0.0, "r": 0.0 }
+  },
+  "control": {
+    "mode": "manual",
+    "schedule": [
+      { "t": 0.0, "rpm": 30.0, "rudder_rad": 0.0 },
+      { "t": 20.0, "rpm": 30.0, "rudder_rad": 0.15 },
+      { "t": 40.0, "rpm": 30.0, "rudder_rad": 0.0 },
+      { "t": 60.0, "rpm": 50.0, "rudder_rad": 0.0 },
+      { "t": 80.0, "rpm": 50.0, "rudder_rad": 0.2 },
+      { "t": 100.0, "rpm": 50.0, "rudder_rad": 0.0 },
+      { "t": 120.0, "rpm": 30.0, "rudder_rad": -0.15 }
+    ]
+  },
+  "environment": {
+    "wind": { "speed": 6.0, "dir_from_rad": 4.712388980 },
+    "current": { "speed": 0.6, "dir_to_rad": 1.570796327 },
+    "bathymetry": { "type": "constant_depth", "depth_m": 60.0 }
+  },
+  "outputs": {
+    "per_tick": { "decimation": 1 },
+    "websocket": { "enabled": false, "decimation": 2 }
+  },
+  "termination_bounds": { 
+    "x_min": -6000.0, "x_max": 6000.0, 
+    "y_min": -6000.0, "y_max": 6000.0 
+  },
+  "notes": "Demonstrates MMG-style cross-coupling effects between surge, sway, and yaw motions"
+}

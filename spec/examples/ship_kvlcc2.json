@@ -11,18 +11,36 @@
     "linear_damping": {}
   },
   "mmg": {
-    "hull_coeffs": { "Xu": -5.0e4, "Yv": -2.0e6, "Nr": -5.0e8 },
+    "hull_coeffs": {
+      "Xu": -5.0e4, "Xuu": -2.0e4, "Yv": -2.0e6, "Yvv": -1.0e5, "Nr": -5.0e8, "Nrr": -2.0e7,
+      "Yuv": -5.0e5, "Yur": 2.0e6, "Nuv": -1.0e8, "Nur": -4.0e8, "Xvr": -5.0e5,
+      "Xvv": -2.0e4, "Xrr": -2.0e6, "Yvr": -1.0e6, "Nvv": -2.0e7
+    },
     "added_mass": { "X_u_dot": -5.0e7, "Y_v_dot": -8.0e7, "N_r_dot": -1.2e10 }
   },
   "propulsion": {
     "type": "single",
     "diameter": 9.0,
+    "wake_fraction": 0.25,
+    "thrust_deduction": 0.18,
+    "efficiency_max": 0.65,
     "map": { "T0": 0.0, "T1": 0.0, "T2": 2.0e5, "steer_gain": 0.02, "x_prop": -160.0 }
   },
-  "rudder": { "area": 120.0, "x": -150.0, "y": 0.0, "lift_curve_slope": 6.28 },
+  "rudder": {
+    "area": 120.0, "x_rudder": -150.0, "y": 0.0,
+    "a_lift": 6.28, "c_drag": 0.08, "stall_angle": 0.35,
+    "slipstream_factor": 1.4, "aspect_ratio": 1.8
+  },
   "limits": {
     "rpm": { "min": -80.0, "max": 80.0 },
     "rudder": { "min_rad": -0.5235987756, "max_rad": 0.5235987756 }
   },
-  "environment": { "rho_water": 1025.0 }
+  "environment": { "rho_water": 1025.0 },
+  "current_params": {
+    "kx_linear": 1.0e5, "ky_linear": 2.0e5,
+    "kx_quad": 5.0e3, "ky_quad": 1.0e4
+  },
+  "wind_params": {
+    "cx": 0.9, "cy": 1.1, "lever_coeff": 0.45
+  }
 }
