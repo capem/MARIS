@@ -14,14 +14,20 @@ def _load_json(path: Path) -> Mapping[str, Any]:
     try:
         return json.loads(path.read_text(encoding="utf-8"))
     except Exception as e:
-        raise ConfigError(f"Failed to read JSON {path}: {e}") from e
+        raise ConfigError(
+            f"Failed to read JSON {path}: {e}",
+            config_path=path,
+        ) from e
 
 
 def _load_schema(schema_path: Path) -> Mapping[str, Any]:
     try:
         return json.loads(schema_path.read_text(encoding="utf-8"))
     except Exception as e:
-        raise SchemaError(f"Failed to read schema {schema_path}: {e}") from e
+        raise SchemaError(
+            f"Failed to read schema {schema_path}: {e}",
+            schema_path=schema_path,
+        ) from e
 
 
 def _validate(
@@ -30,7 +36,11 @@ def _validate(
     try:
         Draft202012Validator(schema).validate(data)
     except Exception as e:
-        raise SchemaError(f"{schema_name} validation failed: {e}") from e
+        raise SchemaError(
+            f"{schema_name} validation failed: {e}",
+            schema_name=schema_name,
+            validation_error=e,
+        ) from e
 
 
 def _angle_to_rad(val: float, units: str | None) -> float:

@@ -9,24 +9,36 @@ from .types import ControlInput, SimulationConfig, VesselParams, VesselState
 
 def validate_params(params: VesselParams) -> None:
     if not math.isfinite(params.m) or params.m <= 0:
-        raise ConfigError("Invalid mass m")
+        raise ConfigError("Invalid mass m", field_name="m", field_value=params.m)
     if not math.isfinite(params.Iz) or params.Iz <= 0:
-        raise ConfigError("Invalid yaw inertia Iz")
+        raise ConfigError("Invalid yaw inertia Iz", field_name="Iz", field_value=params.Iz)
     if params.rpm_min >= params.rpm_max:
-        raise ConfigError("rpm_min must be < rpm_max")
+        raise ConfigError(
+            "rpm_min must be < rpm_max",
+            field_name="rpm_limits",
+            field_value=f"min={params.rpm_min}, max={params.rpm_max}",
+        )
     if params.rudder_min >= params.rudder_max:
-        raise ConfigError("rudder_min must be < rudder_max")
+        raise ConfigError(
+            "rudder_min must be < rudder_max",
+            field_name="rudder_limits",
+            field_value=f"min={params.rudder_min}, max={params.rudder_max}",
+        )
 
 
 def validate_config(cfg: SimulationConfig) -> None:
     if not math.isfinite(cfg.dt) or cfg.dt <= 0:
-        raise ConfigError("dt must be > 0")
+        raise ConfigError("dt must be > 0", field_name="dt", field_value=cfg.dt)
     if not math.isfinite(cfg.t_end) or cfg.t_end <= 0:
-        raise ConfigError("t_end must be > 0")
+        raise ConfigError("t_end must be > 0", field_name="t_end", field_value=cfg.t_end)
     if not math.isfinite(cfg.t0):
-        raise ConfigError("t0 must be finite")
+        raise ConfigError("t0 must be finite", field_name="t0", field_value=cfg.t0)
     if cfg.output_decimation <= 0 or cfg.stream_decimation <= 0:
-        raise ConfigError("decimation factors must be positive integers")
+        raise ConfigError(
+            "decimation factors must be positive integers",
+            field_name="decimation",
+            field_value=f"output={cfg.output_decimation}, stream={cfg.stream_decimation}",
+        )
 
 
 def validate_initial_state(state: VesselState, params: VesselParams) -> None:
@@ -45,29 +57,54 @@ def check_finite_state(state: VesselState) -> None:
         ("r", state.r),
     ):
         if not math.isfinite(val):
-            raise NumericalInstability(f"Non-finite state component {name}={val}")
+            raise NumericalInstability(
+                f"Non-finite state component {name}={val}",
+                component=name,
+                value=val,
+                simulation_time=state.t,
+            )
 
 
 def check_bounds_control(control: ControlInput, params: VesselParams) -> None:
     if not math.isfinite(control.rpm):
-        raise NumericalInstability("Control rpm not finite")
+        raise NumericalInstability(
+            "Control rpm not finite",
+            component="rpm",
+            value=control.rpm,
+        )
     if not math.isfinite(control.rudder_angle):
-        raise NumericalInstability("Control rudder_angle not finite")
+        raise NumericalInstability(
+            "Control rudder_angle not finite",
+            component="rudder_angle",
+            value=control.rudder_angle,
+        )
     if control.rpm < params.rpm_min or control.rpm > params.rpm_max:
         raise NumericalInstability(
-            f"Control rpm out of bounds [{params.rpm_min},{params.rpm_max}]"
+            f"Control rpm out of bounds [{params.rpm_min},{params.rpm_max}]",
+            component="rpm",
+            value=control.rpm,
+            bounds=(params.rpm_min, params.rpm_max),
         )
     if (
         control.rudder_angle < params.rudder_min
         or control.rudder_angle > params.rudder_max
     ):
-        raise NumericalInstability("Control rudder_angle out of bounds")
+        raise NumericalInstability(
+            "Control rudder_angle out of bounds",
+            component="rudder_angle",
+            value=control.rudder_angle,
+            bounds=(params.rudder_min, params.rudder_max),
+        )
 
 
 def check_finite_derivatives(du: float, dv: float, dr: float) -> None:
     for name, val in (("du", du), ("dv", dv), ("dr", dr)):
         if not math.isfinite(val):
-            raise NumericalInstability(f"Non-finite derivative {name}={val}")
+            raise NumericalInstability(
+                f"Non-finite derivative {name}={val}",
+                component=name,
+                value=val,
+            )
 
 
 def detect_numerical_issue(state_before: VesselState, state_after: VesselState) -> None:
@@ -76,7 +113,12 @@ def detect_numerical_issue(state_before: VesselState, state_after: VesselState) 
     dx = abs(state_after.x - state_before.x)
     dy = abs(state_after.y - state_before.y)
     if dx > 1e6 or dy > 1e6:
-        raise NumericalInstability("Unrealistic position jump detected")
+        raise NumericalInstability(
+            "Unrealistic position jump detected",
+            component="position",
+            value=max(dx, dy),
+            simulation_time=state_after.t,
+        )
 
 
 def apply_termination_bounds(
