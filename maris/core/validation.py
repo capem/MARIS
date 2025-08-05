@@ -3,8 +3,8 @@ from __future__ import annotations
 import math
 from typing import Optional
 
-from .types import VesselState, ControlInput, SimulationConfig, VesselParams
 from .exceptions import ConfigError, NumericalInstability
+from .types import ControlInput, SimulationConfig, VesselParams, VesselState
 
 
 def validate_params(params: VesselParams) -> None:
@@ -54,8 +54,13 @@ def check_bounds_control(control: ControlInput, params: VesselParams) -> None:
     if not math.isfinite(control.rudder_angle):
         raise NumericalInstability("Control rudder_angle not finite")
     if control.rpm < params.rpm_min or control.rpm > params.rpm_max:
-        raise NumericalInstability(f"Control rpm out of bounds [{params.rpm_min},{params.rpm_max}]")
-    if control.rudder_angle < params.rudder_min or control.rudder_angle > params.rudder_max:
+        raise NumericalInstability(
+            f"Control rpm out of bounds [{params.rpm_min},{params.rpm_max}]"
+        )
+    if (
+        control.rudder_angle < params.rudder_min
+        or control.rudder_angle > params.rudder_max
+    ):
         raise NumericalInstability("Control rudder_angle out of bounds")
 
 
@@ -74,7 +79,9 @@ def detect_numerical_issue(state_before: VesselState, state_after: VesselState) 
         raise NumericalInstability("Unrealistic position jump detected")
 
 
-def apply_termination_bounds(state: VesselState, cfg: SimulationConfig) -> Optional[str]:
+def apply_termination_bounds(
+    state: VesselState, cfg: SimulationConfig
+) -> Optional[str]:
     bounds = cfg.termination_bounds or {}
     if "x_min" in bounds and state.x < bounds["x_min"]:
         return "x below bound"

@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Optional
 
-from ..core.types import VesselState, ControlInput, VesselParams
+from ..core.types import ControlInput, VesselParams, VesselState
 
 
 @dataclass
@@ -14,6 +14,7 @@ class WaypointTarget:
 
 class WaypointProvider:
     """Simple provider that returns a fixed target for now."""
+
     def __init__(self, heading_rad: float, speed_ms: float) -> None:
         self._target = WaypointTarget(heading_rad=heading_rad, speed_ms=speed_ms)
 
@@ -27,6 +28,7 @@ class RateIntegratingControlProvider:
     from an autopilot and integrates them into absolute commands with saturation applied
     by SimulationRunner. If no autopilot is attached, it returns the current absolute command.
     """
+
     def __init__(
         self,
         vessel_params: VesselParams,
@@ -36,18 +38,24 @@ class RateIntegratingControlProvider:
         target_provider: Optional[WaypointProvider] = None,
     ) -> None:
         self._rpm = max(vessel_params.rpm_min, min(vessel_params.rpm_max, initial_rpm))
-        self._rudder = max(vessel_params.rudder_min, min(vessel_params.rudder_max, initial_rudder))
+        self._rudder = max(
+            vessel_params.rudder_min, min(vessel_params.rudder_max, initial_rudder)
+        )
         self._ap = autopilot
         self._tp = target_provider
 
     @property
     def target(self) -> Optional[WaypointTarget]:
-        return self._tp.desired(0.0, None) if self._tp else None  # not used directly by runner
+        return (
+            self._tp.desired(0.0, None) if self._tp else None
+        )  # not used directly by runner
 
     def current(self) -> ControlInput:
         return ControlInput(rpm=self._rpm, rudder_angle=self._rudder, notes="abs")
 
-    def compute(self, t: float, state: VesselState, target: Optional[WaypointTarget]) -> ControlInput:
+    def compute(
+        self, t: float, state: VesselState, target: Optional[WaypointTarget]
+    ) -> ControlInput:
         if self._ap is None or self._tp is None:
             # No autopilot; return current absolute
             return ControlInput(rpm=self._rpm, rudder_angle=self._rudder, notes="abs")

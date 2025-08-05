@@ -2,11 +2,11 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any, Mapping, Tuple
+from typing import Any, Mapping
 
 from jsonschema import Draft202012Validator
 
-from ..core.exceptions import SchemaError, ConfigError
+from ..core.exceptions import ConfigError, SchemaError
 from ..core.types import VesselParams
 
 
@@ -24,7 +24,9 @@ def _load_schema(schema_path: Path) -> Mapping[str, Any]:
         raise SchemaError(f"Failed to read schema {schema_path}: {e}") from e
 
 
-def _validate(data: Mapping[str, Any], schema: Mapping[str, Any], schema_name: str) -> None:
+def _validate(
+    data: Mapping[str, Any], schema: Mapping[str, Any], schema_name: str
+) -> None:
     try:
         Draft202012Validator(schema).validate(data)
     except Exception as e:
@@ -34,11 +36,14 @@ def _validate(data: Mapping[str, Any], schema: Mapping[str, Any], schema_name: s
 def _angle_to_rad(val: float, units: str | None) -> float:
     if units == "deg":
         import math
+
         return val * math.pi / 180.0
     return val
 
 
-def load(path: str | Path, schema_path: str | Path = "spec/schemas/ship.schema.json") -> VesselParams:
+def load(
+    path: str | Path, schema_path: str | Path = "spec/schemas/ship.schema.json"
+) -> VesselParams:
     """Load Ship Definition JSON, validate, and normalize to internal SI/radians."""
     path = Path(path)
     schema_path = Path(schema_path)
@@ -61,17 +66,27 @@ def load(path: str | Path, schema_path: str | Path = "spec/schemas/ship.schema.j
     m = float(mp["displacement"])
     Iz = float(mp["Iz"])
     added_mass = mp.get("added_mass", {})
-    X_u_dot = float(added_mass.get("X_u_dot", data["mmg"]["added_mass"].get("X_u_dot", 0.0)))
-    Y_v_dot = float(added_mass.get("Y_v_dot", data["mmg"]["added_mass"].get("Y_v_dot", 0.0)))
-    N_r_dot = float(added_mass.get("N_r_dot", data["mmg"]["added_mass"].get("N_r_dot", 0.0)))
+    X_u_dot = float(
+        added_mass.get("X_u_dot", data["mmg"]["added_mass"].get("X_u_dot", 0.0))
+    )
+    Y_v_dot = float(
+        added_mass.get("Y_v_dot", data["mmg"]["added_mass"].get("Y_v_dot", 0.0))
+    )
+    N_r_dot = float(
+        added_mass.get("N_r_dot", data["mmg"]["added_mass"].get("N_r_dot", 0.0))
+    )
 
     # Limits
     limits = data["limits"]
     rpm_min = float(limits["rpm"]["min"])
     rpm_max = float(limits["rpm"]["max"])
     rud = limits["rudder"]
-    rudder_min = float(rud.get("min_rad", _angle_to_rad(rud.get("min", 0.0), angles_unit)))
-    rudder_max = float(rud.get("max_rad", _angle_to_rad(rud.get("max", 0.0), angles_unit)))
+    rudder_min = float(
+        rud.get("min_rad", _angle_to_rad(rud.get("min", 0.0), angles_unit))
+    )
+    rudder_max = float(
+        rud.get("max_rad", _angle_to_rad(rud.get("max", 0.0), angles_unit))
+    )
 
     # Environment defaults
     rho_water = float((data.get("environment", {}) or {}).get("rho_water", 1025.0))

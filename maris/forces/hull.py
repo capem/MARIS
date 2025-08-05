@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Dict
 
-from ..core.types import VesselState, ControlInput, EnvironmentSample, VesselParams
+from ..core.types import ControlInput, EnvironmentSample, VesselParams, VesselState
 
 
 class HullForce:
@@ -15,10 +15,17 @@ class HullForce:
     Units:
       X, Y [N]; N [N*m]
     """
+
     def __init__(self) -> None:
         pass
 
-    def compute(self, state: VesselState, control: ControlInput, env: EnvironmentSample, params: VesselParams) -> Dict[str, float]:
+    def compute(
+        self,
+        state: VesselState,
+        control: ControlInput,
+        env: EnvironmentSample,
+        params: VesselParams,
+    ) -> Dict[str, float]:
         hp = params.hull_params or {}
         # Lighter surge damping to allow acceleration forward
         Xu = float(hp.get("Xu", -5e4))

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Dict
 
-from ..core.types import VesselState, ControlInput, EnvironmentSample, VesselParams
+from ..core.types import ControlInput, EnvironmentSample, VesselParams, VesselState
 
 
 class PropulsionForce:
@@ -11,13 +11,21 @@ class PropulsionForce:
     Thrust map can be provided either as flat keys (T0,T1,T2,steer_gain,x_prop) or
     under a nested "map" key in ship JSON. Units: N for thrust, RPM for input.
     """
+
     def __init__(self) -> None:
         pass
 
-    def compute(self, state: VesselState, control: ControlInput, env: EnvironmentSample, params: VesselParams) -> Dict[str, float]:
+    def compute(
+        self,
+        state: VesselState,
+        control: ControlInput,
+        env: EnvironmentSample,
+        params: VesselParams,
+    ) -> Dict[str, float]:
         pp = params.prop_params or {}
         # Support nested map dict as written in example ship JSON
         mp = pp.get("map", {}) if isinstance(pp.get("map", {}), dict) else {}
+
         def _g(key: str, default: float) -> float:
             if key in pp:
                 return float(pp.get(key))  # flat form
@@ -33,7 +41,9 @@ class PropulsionForce:
         thrust = T0 + T1 * rpm + T2 * rpm * abs(rpm)  # sign via rpm
 
         X = thrust
-        Y = steer_gain * thrust * control.rudder_angle  # small lateral from rudder-steering effect
+        Y = (
+            steer_gain * thrust * control.rudder_angle
+        )  # small lateral from rudder-steering effect
         N = -Y * x_prop  # yaw moment from lateral force at prop location
 
         return {"X": X, "Y": Y, "N": N}

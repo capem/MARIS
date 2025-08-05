@@ -1,13 +1,12 @@
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Mapping, Optional, Tuple
+from typing import Any, Mapping
 
 from jsonschema import Draft202012Validator
 
-from ..core.exceptions import SchemaError, ConfigError
+from ..core.exceptions import ConfigError, SchemaError
 from ..core.types import SimulationConfig, VesselState
 
 
@@ -25,14 +24,18 @@ def _load_schema(schema_path: Path) -> Mapping[str, Any]:
         raise SchemaError(f"Failed to read schema {schema_path}: {e}") from e
 
 
-def _validate(data: Mapping[str, Any], schema: Mapping[str, Any], schema_name: str) -> None:
+def _validate(
+    data: Mapping[str, Any], schema: Mapping[str, Any], schema_name: str
+) -> None:
     try:
         Draft202012Validator(schema).validate(data)
     except Exception as e:
         raise SchemaError(f"{schema_name} validation failed: {e}") from e
 
 
-def load(path: str | Path, schema_path: str | Path = "spec/schemas/scenario.schema.json") -> tuple[SimulationConfig, VesselState, Mapping[str, Any]]:
+def load(
+    path: str | Path, schema_path: str | Path = "spec/schemas/scenario.schema.json"
+) -> tuple[SimulationConfig, VesselState, Mapping[str, Any]]:
     """Load Scenario JSON, validate against schema, normalize to SI/radians and LOCAL_ENU for core."""
     p = Path(path)
     schema = _load_schema(Path(schema_path))

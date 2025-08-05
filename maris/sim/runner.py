@@ -7,42 +7,61 @@ import numpy as np
 from scipy.integrate import solve_ivp
 
 from ..core.types import (
-    VesselState,
     ControlInput,
-    EnvironmentSample,
     Derivatives,
+    EnvironmentSample,
     SimulationConfig,
     VesselParams,
+    VesselState,
 )
 from ..core.validation import (
-    validate_config,
-    validate_params,
-    validate_initial_state,
+    apply_termination_bounds,
     check_bounds_control,
     detect_numerical_issue,
-    apply_termination_bounds,
+    validate_config,
+    validate_initial_state,
+    validate_params,
 )
 
 
 # Protocols for dependency inversion (interfaces only, no implementations here)
 class VesselModel(Protocol):
-    def forces(self, state: VesselState, control: ControlInput, env: EnvironmentSample, params: VesselParams) -> Mapping[str, Any]: ...
-    def f(self, t: float, state: VesselState, control: ControlInput, env: EnvironmentSample, params: VesselParams) -> Derivatives: ...
+    def forces(
+        self,
+        state: VesselState,
+        control: ControlInput,
+        env: EnvironmentSample,
+        params: VesselParams,
+    ) -> Mapping[str, Any]: ...
+    def f(
+        self,
+        t: float,
+        state: VesselState,
+        control: ControlInput,
+        env: EnvironmentSample,
+        params: VesselParams,
+    ) -> Derivatives: ...
     # Optional helpers for vector state mapping
     def unpack_state_vector(self, y: "np.ndarray | list[float]") -> VesselState: ...
     def pack_state_derivative(self, der: Derivatives) -> "np.ndarray | list[float]": ...
-    def get_initial_state_vector(self, initial: VesselState) -> "np.ndarray | list[float]": ...
+    def get_initial_state_vector(
+        self, initial: VesselState
+    ) -> "np.ndarray | list[float]": ...
 
 
 class ControlProvider(Protocol):
     def current(self) -> ControlInput: ...
-    def compute(self, t: float, state: VesselState, target: Optional["Target"]) -> ControlInput: ...
+    def compute(
+        self, t: float, state: VesselState, target: Optional["Target"]
+    ) -> ControlInput: ...
     @property
     def target(self) -> Optional["Target"]: ...
 
 
 class EnvironmentProvider(Protocol):
-    def sample(self, t: float, state: Optional[VesselState] = None) -> EnvironmentSample: ...
+    def sample(
+        self, t: float, state: Optional[VesselState] = None
+    ) -> EnvironmentSample: ...
 
 
 class Target(Protocol):
@@ -51,7 +70,19 @@ class Target(Protocol):
 
 @dataclass
 class Callbacks:
-    on_step: Optional[Callable[[float, VesselState, ControlInput, EnvironmentSample, Derivatives, Mapping[str, Any]], None]] = None
+    on_step: Optional[
+        Callable[
+            [
+                float,
+                VesselState,
+                ControlInput,
+                EnvironmentSample,
+                Derivatives,
+                Mapping[str, Any],
+            ],
+            None,
+        ]
+    ] = None
     on_tick_logged: Optional[Callable[[int], None]] = None
     on_stream_send: Optional[Callable[[int], None]] = None
 
@@ -78,14 +109,22 @@ class RunResult:
         return ().__iter__()
 
 
-def _make_segment_fun(model: VesselModel, control_k: ControlInput, env_k: EnvironmentSample, params: VesselParams):
+def _make_segment_fun(
+    model: VesselModel,
+    control_k: ControlInput,
+    env_k: EnvironmentSample,
+    params: VesselParams,
+):
     def fun(t: float, y: "np.ndarray") -> "np.ndarray":
         # Ensure y is a numpy array
         y_arr = np.asarray(y, dtype=float)
-        state = model.unpack_state_vector(y_arr.tolist() if hasattr(y_arr, "tolist") else y_arr)
+        state = model.unpack_state_vector(
+            y_arr.tolist() if hasattr(y_arr, "tolist") else y_arr
+        )
         der = model.f(t, state, control_k, env_k, params)
         # Ensure derivative is a numpy float array
         return np.asarray(model.pack_state_derivative(der), dtype=float)
+
     return fun
 
 
@@ -112,10 +151,17 @@ class SimulationRunner:
         t = config.t0
         k = 0
         # vector state for solver
-        y = np.asarray([
-            initial_state.x, initial_state.y, initial_state.psi,
-            initial_state.u, initial_state.v, initial_state.r,
-        ], dtype=float)
+        y = np.asarray(
+            [
+                initial_state.x,
+                initial_state.y,
+                initial_state.psi,
+                initial_state.u,
+                initial_state.v,
+                initial_state.r,
+            ],
+            dtype=float,
+        )
         term_reason: Optional[str] = None
 
         # Control integration state (for rate-based autopilot outputs)
@@ -143,9 +189,20 @@ class SimulationRunner:
             up = control_provider.compute(t, state, target)
 
             if getattr(up, "notes", None) == "rate":
-                rpm_cmd = max(vessel_params.rpm_min, min(vessel_params.rpm_max, rpm_cmd + up.rpm * config.dt))
-                rudder_cmd = max(vessel_params.rudder_min, min(vessel_params.rudder_max, rudder_cmd + up.rudder_angle * config.dt))
-                control = ControlInput(rpm=rpm_cmd, rudder_angle=rudder_cmd, notes="abs")
+                rpm_cmd = max(
+                    vessel_params.rpm_min,
+                    min(vessel_params.rpm_max, rpm_cmd + up.rpm * config.dt),
+                )
+                rudder_cmd = max(
+                    vessel_params.rudder_min,
+                    min(
+                        vessel_params.rudder_max,
+                        rudder_cmd + up.rudder_angle * config.dt,
+                    ),
+                )
+                control = ControlInput(
+                    rpm=rpm_cmd, rudder_angle=rudder_cmd, notes="abs"
+                )
             else:
                 control = up
             check_bounds_control(control, vessel_params)
@@ -179,9 +236,17 @@ class SimulationRunner:
                 )
 
                 if not sol.success or sol.y is None:
-                    term_reason = f"solver_failed: {getattr(sol, 'message', 'no_message')}"
+                    term_reason = (
+                        f"solver_failed: {getattr(sol, 'message', 'no_message')}"
+                    )
                     # If solver provided a last time, use it for stagnation detection below
-                    last_t = sol.t[-1] if hasattr(sol, "t") and getattr(sol, "t", None) is not None and len(sol.t) else t
+                    last_t = (
+                        sol.t[-1]
+                        if hasattr(sol, "t")
+                        and getattr(sol, "t", None) is not None
+                        and len(sol.t)
+                        else t
+                    )
                     # If no progress, break; else advance t to last_t and break
                     if last_t - t < min_advance:
                         t = t  # no change
@@ -195,7 +260,11 @@ class SimulationRunner:
                     break
                 y_out = y_arr[:, -1] if y_arr.ndim == 2 else y_arr
                 # Also sanity-check time advancement from solver if available
-                if hasattr(sol, "t") and getattr(sol, "t", None) is not None and len(sol.t):
+                if (
+                    hasattr(sol, "t")
+                    and getattr(sol, "t", None) is not None
+                    and len(sol.t)
+                ):
                     if sol.t[-1] - t < min_advance and t_next - t >= min_advance:
                         term_reason = "solver_stagnation_internal"
                         break
@@ -207,30 +276,42 @@ class SimulationRunner:
 
             # Logging (decimated)
             if writer and (k % config.output_decimation) == 0:
-                writer.write_tick({
-                    "t": t,
-                    "x": state.x,
-                    "y": state.y,
-                    "psi": state.psi,
-                    "u": state.u,
-                    "v": state.v,
-                    "r": state.r,
-                    "rpm": control.rpm,
-                    "rudder_angle": control.rudder_angle,
-                    "wind_speed": env.wind_speed,
-                    "wind_dir_from": env.wind_dir_from,
-                    "current_speed": env.current_speed,
-                    "current_dir_to": env.current_dir_to,
-                    "X": float(forces.get("X", 0.0)) if isinstance(forces, dict) else 0.0,
-                    "Y": float(forces.get("Y", 0.0)) if isinstance(forces, dict) else 0.0,
-                    "N": float(forces.get("N", 0.0)) if isinstance(forces, dict) else 0.0,
-                    "rpm_cmd": rpm_cmd,
-                    "rudder_cmd": rudder_cmd,
-                })
+                writer.write_tick(
+                    {
+                        "t": t,
+                        "x": state.x,
+                        "y": state.y,
+                        "psi": state.psi,
+                        "u": state.u,
+                        "v": state.v,
+                        "r": state.r,
+                        "rpm": control.rpm,
+                        "rudder_angle": control.rudder_angle,
+                        "wind_speed": env.wind_speed,
+                        "wind_dir_from": env.wind_dir_from,
+                        "current_speed": env.current_speed,
+                        "current_dir_to": env.current_dir_to,
+                        "X": float(forces.get("X", 0.0))
+                        if isinstance(forces, dict)
+                        else 0.0,
+                        "Y": float(forces.get("Y", 0.0))
+                        if isinstance(forces, dict)
+                        else 0.0,
+                        "N": float(forces.get("N", 0.0))
+                        if isinstance(forces, dict)
+                        else 0.0,
+                        "rpm_cmd": rpm_cmd,
+                        "rudder_cmd": rudder_cmd,
+                    }
+                )
                 if callbacks and callbacks.on_tick_logged:
                     callbacks.on_tick_logged(k)
 
-            if callbacks and callbacks.on_stream_send and (k % config.stream_decimation) == 0:
+            if (
+                callbacks
+                and callbacks.on_stream_send
+                and (k % config.stream_decimation) == 0
+            ):
                 callbacks.on_stream_send(k)
 
             # Advance time, state and tick counter
@@ -247,7 +328,9 @@ class SimulationRunner:
                 term_reason = reason
                 break
 
-        status = "completed" if t >= config.t_end and term_reason is None else "terminated"
+        status = (
+            "completed" if t >= config.t_end and term_reason is None else "terminated"
+        )
         summary = {
             "status": status,
             "reason": term_reason if status == "terminated" else "completed",
@@ -258,7 +341,9 @@ class SimulationRunner:
         if summary_writer:
             summary_writer.write_summary(summary)
 
-        return RunResult(status=status, reason=term_reason, end_time=t, ticks=k, dt=config.dt)
+        return RunResult(
+            status=status, reason=term_reason, end_time=t, ticks=k, dt=config.dt
+        )
 
 
 # IO writer protocols (kept local to avoid circular deps)

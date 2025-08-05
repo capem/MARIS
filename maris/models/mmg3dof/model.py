@@ -1,20 +1,32 @@
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 from typing import Any, Dict, Mapping, Optional, Protocol
-import math
 
-from ...core.types import VesselState, ControlInput, EnvironmentSample, Derivatives, VesselParams
+from ...core.types import (
+    ControlInput,
+    Derivatives,
+    EnvironmentSample,
+    VesselParams,
+    VesselState,
+)
 from ...core.validation import check_bounds_control
-from ...forces.wind import WindForce
 from ...forces.current import CurrentForce
 from ...forces.hull import HullForce
 from ...forces.propulsion import PropulsionForce
 from ...forces.rudder import RudderForce
+from ...forces.wind import WindForce
 
 
 class ForceModule(Protocol):
-    def compute(self, state: VesselState, control: ControlInput, env: EnvironmentSample, params: VesselParams) -> Mapping[str, float]: ...
+    def compute(
+        self,
+        state: VesselState,
+        control: ControlInput,
+        env: EnvironmentSample,
+        params: VesselParams,
+    ) -> Mapping[str, float]: ...
 
 
 @dataclass
@@ -25,6 +37,7 @@ class MMG3DOFModel:
       - Provide f(t, state, control, env, params) mapping forces to Derivatives
     Dynamics here remain placeholder but include basic kinematics to show motion.
     """
+
     hull: Optional[ForceModule] = None
     propulsion: Optional[ForceModule] = None
     rudder: Optional[ForceModule] = None
@@ -44,7 +57,13 @@ class MMG3DOFModel:
         if self.current is None:
             self.current = CurrentForce()
 
-    def _sum_forces(self, state: VesselState, control: ControlInput, env: EnvironmentSample, params: VesselParams) -> Dict[str, Any]:
+    def _sum_forces(
+        self,
+        state: VesselState,
+        control: ControlInput,
+        env: EnvironmentSample,
+        params: VesselParams,
+    ) -> Dict[str, Any]:
         components: Dict[str, Dict[str, float]] = {}
         total_X = total_Y = total_N = 0.0
 
@@ -69,11 +88,24 @@ class MMG3DOFModel:
         return {"X": total_X, "Y": total_Y, "N": total_N, "components": components}
 
     # Public interface expected by SimulationRunner/Integrator
-    def forces(self, state: VesselState, control: ControlInput, env: EnvironmentSample, params: VesselParams) -> Mapping[str, Any]:
+    def forces(
+        self,
+        state: VesselState,
+        control: ControlInput,
+        env: EnvironmentSample,
+        params: VesselParams,
+    ) -> Mapping[str, Any]:
         check_bounds_control(control, params)
         return self._sum_forces(state, control, env, params)
 
-    def f(self, t: float, state: VesselState, control: ControlInput, env: EnvironmentSample, params: VesselParams) -> Derivatives:
+    def f(
+        self,
+        t: float,
+        state: VesselState,
+        control: ControlInput,
+        env: EnvironmentSample,
+        params: VesselParams,
+    ) -> Derivatives:
         # Kinematics
         c = math.cos(state.psi)
         s = math.sin(state.psi)
@@ -108,10 +140,32 @@ class MMG3DOFModel:
     def unpack_state_vector(self, y: "list[float] | tuple[float, ...]") -> VesselState:
         x, y_pos, psi, u, v, r = y
         # time t is not stored in vector; caller provides current t separately
-        return VesselState(t=0.0, x=float(x), y=float(y_pos), psi=float(psi), u=float(u), v=float(v), r=float(r))
+        return VesselState(
+            t=0.0,
+            x=float(x),
+            y=float(y_pos),
+            psi=float(psi),
+            u=float(u),
+            v=float(v),
+            r=float(r),
+        )
 
     def pack_state_derivative(self, der: Derivatives) -> "list[float]":
-        return [float(der.dx), float(der.dy), float(der.dpsi), float(der.du), float(der.dv), float(der.dr)]
+        return [
+            float(der.dx),
+            float(der.dy),
+            float(der.dpsi),
+            float(der.du),
+            float(der.dv),
+            float(der.dr),
+        ]
 
     def get_initial_state_vector(self, initial: VesselState) -> "list[float]":
-        return [float(initial.x), float(initial.y), float(initial.psi), float(initial.u), float(initial.v), float(initial.r)]
+        return [
+            float(initial.x),
+            float(initial.y),
+            float(initial.psi),
+            float(initial.u),
+            float(initial.v),
+            float(initial.r),
+        ]

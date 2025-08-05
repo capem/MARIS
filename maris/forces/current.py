@@ -3,7 +3,7 @@ from __future__ import annotations
 import math
 from typing import Dict
 
-from ..core.types import VesselState, ControlInput, EnvironmentSample, VesselParams
+from ..core.types import ControlInput, EnvironmentSample, VesselParams, VesselState
 
 
 class CurrentForce:
@@ -12,12 +12,21 @@ class CurrentForce:
     - Compute relative water velocity as vessel body velocity minus current resolved in body frame.
     - Linear drag proportional to relative velocity; yaw moment via lever arm ~ Lpp/2.
     """
-    def __init__(self, kx: float = 5e4, ky: float = 1e5, lever_coeff: float = 0.5) -> None:
+
+    def __init__(
+        self, kx: float = 5e4, ky: float = 1e5, lever_coeff: float = 0.5
+    ) -> None:
         self.kx = kx
         self.ky = ky
         self.lever_coeff = lever_coeff
 
-    def compute(self, state: VesselState, control: ControlInput, env: EnvironmentSample, params: VesselParams) -> Dict[str, float]:
+    def compute(
+        self,
+        state: VesselState,
+        control: ControlInput,
+        env: EnvironmentSample,
+        params: VesselParams,
+    ) -> Dict[str, float]:
         # Current to-direction vector in world (ENU)
         Vc = max(0.0, float(env.current_speed))
         theta_to = float(env.current_dir_to)

@@ -3,11 +3,13 @@ from __future__ import annotations
 import csv
 import json
 from pathlib import Path
-from typing import Any, Iterable, Mapping, Optional, Sequence
+from typing import Any, Mapping, Optional, Sequence
 
 
 class TickWriter:
-    def write_tick(self, record: Mapping[str, Any]) -> None:  # pragma: no cover - protocol-like
+    def write_tick(
+        self, record: Mapping[str, Any]
+    ) -> None:  # pragma: no cover - protocol-like
         raise NotImplementedError
 
 
@@ -15,12 +17,28 @@ class CsvTickWriter(TickWriter):
     def __init__(self, path: Path, header: Optional[Sequence[str]] = None) -> None:
         self.path = path
         self._fh = path.open("w", newline="", encoding="utf-8")
-        self._header = list(header) if header else [
-            "t", "x", "y", "psi", "u", "v", "r",
-            "rpm", "rudder_angle",
-            "wind_speed", "wind_dir_from", "current_speed", "current_dir_to",
-            "X", "Y", "N"
-        ]
+        self._header = (
+            list(header)
+            if header
+            else [
+                "t",
+                "x",
+                "y",
+                "psi",
+                "u",
+                "v",
+                "r",
+                "rpm",
+                "rudder_angle",
+                "wind_speed",
+                "wind_dir_from",
+                "current_speed",
+                "current_dir_to",
+                "X",
+                "Y",
+                "N",
+            ]
+        )
         self._writer = csv.writer(self._fh)
         self._writer.writerow(self._header)
 
@@ -50,7 +68,9 @@ class JsonlTickWriter(TickWriter):
 
 
 class SummaryWriter:
-    def write_summary(self, summary: Mapping[str, Any]) -> None:  # pragma: no cover - protocol-like
+    def write_summary(
+        self, summary: Mapping[str, Any]
+    ) -> None:  # pragma: no cover - protocol-like
         raise NotImplementedError
 
 
