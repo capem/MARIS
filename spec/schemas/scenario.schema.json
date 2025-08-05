@@ -1,0 +1,129 @@
+{
+  "$id": "spec/schemas/scenario.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "MARIS Scenario",
+  "type": "object",
+  "required": ["schema_version", "simulation", "initial_conditions"],
+  "properties": {
+    "schema_version": { "type": "string" },
+    "model_version": { "type": "string" },
+    "identity": {
+      "type": "object",
+      "properties": {
+        "scenario_id": { "type": "string" },
+        "name": { "type": "string" }
+      }
+    },
+    "crs": {
+      "type": "object",
+      "properties": {
+        "type": { "enum": ["LOCAL_ENU", "EPSG"] },
+        "origin": {
+          "type": "object",
+          "properties": {
+            "lon": { "type": "number" },
+            "lat": { "type": "number" },
+            "h": { "type": "number" }
+          }
+        },
+        "epsg": { "type": "integer" },
+        "theta0_rad": { "type": "number" }
+      }
+    },
+    "simulation": {
+      "type": "object",
+      "required": ["t_end", "t_step"],
+      "properties": {
+        "t0": { "type": "number", "default": 0.0 },
+        "t_end": { "type": "number", "exclusiveMinimum": 0 },
+        "t_step": { "type": "number", "exclusiveMinimum": 0 },
+        "integrator": { "type": "string" },
+        "seed": { "type": "integer" }
+      }
+    },
+    "initial_conditions": {
+      "type": "object",
+      "required": ["state"],
+      "properties": {
+        "state": {
+          "type": "object",
+          "required": ["x", "y", "psi_rad"],
+          "properties": {
+            "x": { "type": "number" },
+            "y": { "type": "number" },
+            "psi_rad": { "type": "number" },
+            "u": { "type": "number", "default": 0.0 },
+            "v": { "type": "number", "default": 0.0 },
+            "r": { "type": "number", "default": 0.0 }
+          }
+        }
+      }
+    },
+    "control": {
+      "type": "object",
+      "properties": {
+        "mode": { "enum": ["manual", "autopilot"] },
+        "schedule": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "t": { "type": "number" },
+              "rpm": { "type": "number" },
+              "rudder_rad": { "type": "number" }
+            }
+          }
+        },
+        "autopilot": { "type": "object" }
+      }
+    },
+    "environment": {
+      "type": "object",
+      "properties": {
+        "wind": {
+          "type": "object",
+          "properties": {
+            "speed": { "type": "number" },
+            "dir_from_rad": { "type": "number" }
+          }
+        },
+        "current": {
+          "type": "object",
+          "properties": {
+            "speed": { "type": "number" },
+            "dir_to_rad": { "type": "number" }
+          }
+        },
+        "bathymetry": { "type": "object" }
+      }
+    },
+    "outputs": {
+      "type": "object",
+      "properties": {
+        "per_tick": {
+          "type": "object",
+          "properties": {
+            "decimation": { "type": "integer", "minimum": 1 }
+          }
+        },
+        "websocket": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "decimation": { "type": "integer", "minimum": 1 }
+          }
+        }
+      }
+    },
+    "termination_bounds": {
+      "type": "object",
+      "properties": {
+        "x_min": { "type": "number" },
+        "x_max": { "type": "number" },
+        "y_min": { "type": "number" },
+        "y_max": { "type": "number" }
+      }
+    },
+    "notes": { "type": "string" }
+  }
+}

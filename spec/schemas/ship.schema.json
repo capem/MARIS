@@ -1,0 +1,91 @@
+{
+  "$id": "spec/schemas/ship.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "MARIS Ship Definition",
+  "type": "object",
+  "required": ["schema_version", "geometry", "mass_properties", "mmg", "limits"],
+  "properties": {
+    "schema_version": { "type": "string" },
+    "model_version": { "type": "string" },
+    "identity": {
+      "type": "object",
+      "properties": {
+        "vessel_id": { "type": "string" },
+        "name": { "type": "string" }
+      }
+    },
+    "units_policy": {
+      "type": "object",
+      "properties": {
+        "angles": { "enum": ["rad", "deg"] },
+        "length": { "const": "m" },
+        "mass": { "const": "kg" }
+      }
+    },
+    "geometry": {
+      "type": "object",
+      "required": ["Lpp", "B", "T"],
+      "properties": {
+        "Lpp": { "type": "number", "minimum": 0 },
+        "B": { "type": "number", "minimum": 0 },
+        "T": { "type": "number", "minimum": 0 }
+      }
+    },
+    "mass_properties": {
+      "type": "object",
+      "required": ["displacement", "Iz"],
+      "properties": {
+        "displacement": { "type": "number", "exclusiveMinimum": 0 },
+        "Iz": { "type": "number", "exclusiveMinimum": 0 },
+        "added_mass": {
+          "type": "object",
+          "properties": {
+            "X_u_dot": { "type": "number" },
+            "Y_v_dot": { "type": "number" },
+            "N_r_dot": { "type": "number" }
+          }
+        },
+        "linear_damping": { "type": "object" }
+      }
+    },
+    "mmg": {
+      "type": "object",
+      "required": ["hull_coeffs", "added_mass"],
+      "properties": {
+        "hull_coeffs": { "type": "object" },
+        "added_mass": {
+          "type": "object",
+          "properties": {
+            "X_u_dot": { "type": "number" },
+            "Y_v_dot": { "type": "number" },
+            "N_r_dot": { "type": "number" }
+          }
+        }
+      }
+    },
+    "propulsion": { "type": "object" },
+    "rudder": { "type": "object" },
+    "limits": {
+      "type": "object",
+      "required": ["rpm", "rudder"],
+      "properties": {
+        "rpm": {
+          "type": "object",
+          "required": ["min", "max"],
+          "properties": {
+            "min": { "type": "number" },
+            "max": { "type": "number" }
+          }
+        },
+        "rudder": {
+          "type": "object",
+          "properties": {
+            "min_rad": { "type": "number" },
+            "max_rad": { "type": "number" }
+          }
+        }
+      }
+    },
+    "environment": { "type": "object" }
+  }
+}
