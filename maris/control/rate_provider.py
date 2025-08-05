@@ -13,12 +13,29 @@ class WaypointTarget:
 
 
 class WaypointProvider:
-    """Simple provider that returns a fixed target for now."""
+    """Simple provider that returns a fixed heading and speed target."""
 
     def __init__(self, heading_rad: float, speed_ms: float) -> None:
+        """
+        Initialize waypoint provider with fixed target.
+
+        Args:
+            heading_rad: Target heading in radians
+            speed_ms: Target speed in m/s
+        """
         self._target = WaypointTarget(heading_rad=heading_rad, speed_ms=speed_ms)
 
     def desired(self, t: float, state: VesselState) -> WaypointTarget:
+        """
+        Return the fixed target.
+
+        Args:
+            t: Current simulation time [s] (unused)
+            state: Current vessel state (unused)
+
+        Returns:
+            Fixed WaypointTarget
+        """
         return self._target
 
 
